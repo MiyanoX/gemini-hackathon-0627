@@ -44,27 +44,27 @@ export default function RightPanel({
 
   const bgPresets = [
     { 
-      name: lang === "zh" ? "柔和温暖" : lang === "ja" ? "柔らかな温かさ" : "Warm Sun", 
+      name: lang === "ja" ? "柔らかな温かさ" : "Warm Sun", 
       value: "bg-gradient-to-b from-[#fdfbf7] to-[#f5ebd8]" 
     },
     { 
-      name: lang === "zh" ? "极致高光" : lang === "ja" ? "クリーンライト" : "Clean Light", 
+      name: lang === "ja" ? "クリーンライト" : "Clean Light", 
       value: "bg-gradient-to-b from-gray-50 to-gray-200" 
     },
     { 
-      name: lang === "zh" ? "暗黑极客" : lang === "ja" ? "コズミックダーク" : "Cosmic Dark", 
+      name: lang === "ja" ? "コズミックダーク" : "Cosmic Dark", 
       value: "bg-[#131313]" 
     },
     { 
-      name: lang === "zh" ? "深蓝星夜" : lang === "ja" ? "スペースディープ" : "Space Deep", 
+      name: lang === "ja" ? "スペースディープ" : "Space Deep", 
       value: "bg-gradient-to-tr from-[#1e1b4b] to-[#311042]" 
     },
     { 
-      name: lang === "zh" ? "蔷薇暮光" : lang === "ja" ? "サンセットトワイライト" : "Sunset Twilight", 
+      name: lang === "ja" ? "サンセットトワイライト" : "Sunset Twilight", 
       value: "bg-gradient-to-tr from-[#ede9fe] to-[#fbcfe8]" 
     },
     { 
-      name: lang === "zh" ? "全白画布" : lang === "ja" ? "ピュアホワイト" : "Pure White", 
+      name: lang === "ja" ? "ピュアホワイト" : "Pure White", 
       value: "bg-white" 
     }
   ];
@@ -333,7 +333,7 @@ export default function RightPanel({
                     value={p}
                     onChange={(e) => handlePromptChange(idx, e.target.value)}
                     className="flex-1 p-2 text-xs rounded-lg border border-gray-200 focus:outline-none focus:border-indigo-300 text-gray-700"
-                    placeholder={`${lang === "zh" ? "提示问句" : lang === "ja" ? "質問タグ" : "Suggested question"} ${idx + 1}`}
+                    placeholder={`${lang === "ja" ? "質問タグ" : "Suggested question"} ${idx + 1}`}
                   />
                 </div>
               ))}

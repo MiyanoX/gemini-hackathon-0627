@@ -113,24 +113,17 @@ export default function LeftPanel({
         });
 
         // 智能助理定制
-        const isZh = lang === "zh";
         const isJa = lang === "ja";
-        const generatedAssistantName = isZh 
-          ? `${data.title} 的 AI 助理` 
-          : isJa 
-            ? `${data.title} の AI アシスタント`
-            : `${data.title}'s AI Assistant`;
-        const generatedGreeting = isZh
-          ? `您好！我是代表 ${data.title} 的 AI 虚拟助理，有什么能帮到您的吗？`
-          : isJa
-            ? `こんにちは！${data.title} の AI 仮想アシスタントです。何かお手伝いできることはありますか？`
-            : `Hello! I am the AI Assistant for ${data.title}. How can I assist you today?`;
+        const generatedAssistantName = isJa 
+          ? `${data.title} の AI アシスタント`
+          : `${data.title}'s AI Assistant`;
+        const generatedGreeting = isJa
+          ? `こんにちは！${data.title} の AI 仮想アシスタントです。何かお手伝いできることはありますか？`
+          : `Hello! I am the AI Assistant for ${data.title}. How can I assist you today?`;
         
-        const defaultPrompts = isZh
-          ? ["了解更多信息", "如何与您联系？", "推荐什么服务？"]
-          : isJa
-            ? ["詳しく知りたい", "連絡先はどこ？", "おすすめサービスは？"]
-            : ["Learn More", "How to Contact?", "Special Recommendations?"];
+        const defaultPrompts = isJa
+          ? ["詳しく知りたい", "連絡先はどこ？", "おすすめサービスは？"]
+          : ["Learn More", "How to Contact?", "Special Recommendations?"];
 
         setAssistantName(generatedAssistantName);
         setAssistantGreeting(generatedGreeting);

@@ -1,5 +1,5 @@
 {
-  "name": "Doppel 页面生成器",
+  "name": "Doppeli 页面生成器",
   "description": "一个功能强大的中文可视化页面与数字名片排版编辑器，支持多套精美模版、实时预览、样式自定义以及 AI 智能助理。",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]

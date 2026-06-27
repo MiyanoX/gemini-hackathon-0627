@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { LinkBlock, ThemeSettings, Persona } from "../types";
+import { ThemeSettings, Persona } from "../types";
 import { Language, TRANSLATIONS } from "../i18n";
 import { 
   Calendar, 
@@ -12,13 +12,17 @@ import {
   Instagram, 
   Music, 
   Send, 
-  Sparkles,
-  Loader2,
-  ChevronRight,
-  X
+  Sparkles, 
+  Loader2, 
+  ChevronRight, 
+  X,
+  ArrowLeft,
+  Check,
+  Globe,
+  Share2
 } from "lucide-react";
 
-interface PhonePreviewProps {
+interface LivePreviewProps {
   lang: Language;
   persona: Persona;
   theme: ThemeSettings;
@@ -26,6 +30,8 @@ interface PhonePreviewProps {
   assistantGreeting: string;
   assistantPrompts: string[];
   gallery?: string[];
+  onClose: () => void;
+  mode: "preview" | "publish";
 }
 
 const getShortKeyword = (prompt: string): string => {
@@ -101,20 +107,23 @@ const getShortKeyword = (prompt: string): string => {
   return cleanJa;
 };
 
-export default function PhonePreview({
+export default function LivePreview({
   lang,
   persona,
   theme,
   assistantName,
   assistantGreeting,
   assistantPrompts,
-  gallery
-}: PhonePreviewProps) {
+  gallery,
+  onClose,
+  mode
+}: LivePreviewProps) {
   const t = TRANSLATIONS[lang];
   const [messages, setMessages] = useState<{ role: "user" | "assistant"; text: string }[]>([]);
   const [inputMessage, setInputMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
+  const [showShareTooltip, setShowShareTooltip] = useState(false);
   
   const chatEndRef = useRef<HTMLDivElement>(null);
 
@@ -130,31 +139,6 @@ export default function PhonePreview({
     ]);
   }, [assistantGreeting]);
 
-  // Get matching icon for link blocks
-  const getLinkIcon = (iconName: string, color: string) => {
-    const props = { className: "w-5 h-5", style: { color } };
-    switch (iconName.toLowerCase()) {
-      case "calendar":
-        return <Calendar {...props} />;
-      case "video":
-        return <Video {...props} />;
-      case "mail":
-        return <Mail {...props} />;
-      case "phone":
-        return <Phone {...props} />;
-      case "map":
-        return <MapPin {...props} />;
-      case "store":
-        return <Store {...props} />;
-      case "instagram":
-        return <Instagram {...props} />;
-      case "music":
-        return <Music {...props} />;
-      default:
-        return <LinkIcon {...props} />;
-    }
-  };
-
   // Chat message submission
   const handleSendMessage = async (textToSend: string) => {
     if (!textToSend.trim() || isLoading) return;
@@ -165,7 +149,6 @@ export default function PhonePreview({
     setIsLoading(true);
 
     try {
-      // 传递当前的人设，让后端模型能够生成切合的人格
       const response = await fetch("/api/assistant-chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -191,7 +174,7 @@ export default function PhonePreview({
       }
     } catch (err: any) {
       const timeoutMsg = lang === "ja"
-        ? `タイムアウトまたはエラーが発生しました。"設定 > 鍵"にGEMINI_API_KEYを正しく構成してください。`
+        ? `タイムアウトまたはエラーが発生しました。"設定 > 鍵"にGEMINI_API_KEYを正しく构成してください。`
         : `Timeout or error. Please check your GEMINI_API_KEY is configured correctly in Settings.`;
       setMessages(prev => [...prev, { role: "assistant", text: timeoutMsg }]);
     } finally {
@@ -199,7 +182,6 @@ export default function PhonePreview({
     }
   };
 
-  // Button class generator based on buttonStyle selection
   const getButtonStyles = (accent: string, radius: number) => {
     const radiusStyle = { borderRadius: `${radius / 4}px` };
     
@@ -237,173 +219,205 @@ export default function PhonePreview({
 
   const isDarkBg = theme.background.includes("bg-[#131313]") || theme.background.includes("bg-[#111111]");
 
+  const handleShare = () => {
+    navigator.clipboard.writeText(window.location.href);
+    setShowShareTooltip(true);
+    setTimeout(() => setShowShareTooltip(false), 2000);
+  };
+
   return (
-    <div className="relative w-[390px] h-[812px] rounded-[3rem] border-[14px] border-gray-900 bg-white shadow-2xl overflow-hidden shrink-0 flex flex-col select-none my-auto">
-      {/* Phone Status Bar / Notch */}
-      <div className="absolute top-0 inset-x-0 h-8 flex justify-center z-50">
-        <div className="w-36 h-5 bg-gray-900 rounded-b-2xl flex items-center justify-between px-6">
-          <span className="text-[10px] text-white font-medium">9:41</span>
-          <div className="w-12 h-1 bg-gray-700 rounded-full"></div>
-          <div className="flex items-center gap-1">
-            <div className="w-2.5 h-2.5 rounded-full bg-white/40 scale-75"></div>
-            <div className="w-3.5 h-2 bg-white rounded-sm scale-75"></div>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Screen Content */}
-      <div className={`flex-1 overflow-y-auto scrollbar-none w-full flex flex-col items-center py-12 px-6 relative transition-all duration-300 ${theme.background}`}>
-        {/* Soft Background blur spot for glow */}
-        <div className="absolute top-20 left-1/2 -translate-x-1/2 w-64 h-64 rounded-full blur-3xl opacity-20 pointer-events-none" style={{ backgroundColor: theme.accentColor }}></div>
-
-        {/* Profile Section */}
-        <div className="relative z-10 flex flex-col items-center w-full mt-6 mb-8 text-center">
-          <div className="relative mb-4 group/p">
-            <img 
-              alt={persona.name} 
-              className="w-24 h-24 rounded-full border-4 border-white/80 shadow-md object-cover transition-transform group-hover/p:scale-105 duration-300"
-              src={persona.avatarUrl || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200"}
-              referrerPolicy="no-referrer"
-            />
-            <div className="absolute bottom-1 right-1 bg-emerald-500 w-4 h-4 rounded-full border-2 border-white"></div>
-          </div>
+    <div className="fixed inset-0 z-50 flex flex-col w-screen h-screen overflow-hidden bg-gray-950 font-sans antialiased text-gray-800 animate-fade-in">
+      
+      {/* 1. Preview Top Control Banner */}
+      <div className="h-14 bg-gray-900 border-b border-gray-800 px-4 md:px-8 flex items-center justify-between text-white shrink-0 z-50 shadow-md">
+        <div className="flex items-center gap-3">
+          <button 
+            onClick={onClose}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-gray-800 hover:bg-gray-700 transition-colors text-xs font-bold text-gray-200 cursor-pointer"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span>{lang === "ja" ? "エディタに戻る" : "Back to Editor"}</span>
+          </button>
           
-          <h1 className={`text-xl font-bold mb-1 ${isDarkBg ? 'text-white' : 'text-gray-900'}`}>{persona.name}</h1>
-          {persona.title && (
-            <p className="text-xs font-semibold px-2.5 py-1 rounded-full bg-black/5 dark:bg-white/10 text-gray-500 dark:text-gray-300 mb-2 inline-block">
-              {persona.title}
-            </p>
-          )}
-          <p className={`text-xs max-w-[280px] leading-relaxed ${isDarkBg ? 'text-gray-300' : 'text-gray-600'}`}>
-            {persona.bio}
-          </p>
-        </div>
+          <div className="h-4 w-px bg-gray-800"></div>
 
-        {/* Gallery / Image Showcase Section */}
-        {gallery && gallery.length > 0 && (
-          <div className="relative z-10 w-full mb-6 animate-fade-in">
-            <div className={`grid gap-2 ${
-              gallery.length === 1 ? "grid-cols-1" : gallery.length === 2 ? "grid-cols-2" : "grid-cols-3"
-            }`}>
-              {gallery.map((url, idx) => (
-                <div 
-                  key={idx} 
-                  className="aspect-square overflow-hidden shadow-sm border border-white/20 group relative cursor-pointer"
-                  style={{ borderRadius: `${Math.max(4, Math.min(theme.borderRadius / 4, 20))}px` }}
-                >
-                  <img 
-                    src={url} 
-                    alt={`Showcase ${idx}`} 
-                    className="w-full h-full object-cover transition-all duration-500 group-hover:scale-108"
-                    referrerPolicy="no-referrer"
-                  />
-                  {/* Subtle hover overlay gradient */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-2">
-                    <span className="text-[9px] text-white/90 font-medium translate-y-1 group-hover:translate-y-0 transition-transform duration-300">
-                      {lang === "ja" ? "画像" : "Image"} {idx + 1}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Recommended Visitor Tags / Prompts directly on the Home Screen */}
-        <div className="relative z-10 w-full flex-1 flex flex-col gap-3.5 mt-2">
-          <div className={`text-base font-extrabold text-left ${isDarkBg ? "text-white" : "text-black"} tracking-tight mb-0.5`}>
-            Dopes
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            {assistantPrompts.length === 0 ? (
-              <div className="col-span-2 text-center py-8 px-4 rounded-2xl border border-dashed border-gray-300/40 bg-white/10 backdrop-blur-sm">
-                <p className="text-xs text-gray-500">{t.chatNoPrompts}</p>
-              </div>
+          <div className="flex items-center gap-2 text-xs text-gray-400">
+            {mode === "publish" ? (
+              <span className="flex items-center gap-1 bg-emerald-500/10 text-emerald-400 font-bold px-2 py-0.5 rounded-md border border-emerald-500/20">
+                <Check className="w-3 h-3" />
+                <span>{lang === "ja" ? "公開済み" : "Published Live"}</span>
+              </span>
             ) : (
-              assistantPrompts.map((prompt, idx) => {
-                // Generate button style matching the theme
-                const buttonStyles = getButtonStyles(theme.accentColor, theme.borderRadius);
-                const shortLabel = getShortKeyword(prompt);
-                return (
-                  <button 
-                    key={idx}
-                    onClick={() => {
-                      setChatOpen(true);
-                      handleSendMessage(prompt);
-                    }}
-                    {...buttonStyles}
-                    className={`${buttonStyles.className} text-center text-xs justify-center group cursor-pointer w-full py-3 px-2 font-bold hover:scale-102 transition-all`}
-                    title={prompt}
-                  >
-                    <span className="truncate font-bold text-center">{shortLabel}</span>
-                  </button>
-                );
-              })
+              <span className="flex items-center gap-1 bg-indigo-500/10 text-indigo-400 font-bold px-2 py-0.5 rounded-md border border-indigo-500/20">
+                <Globe className="w-3 h-3" />
+                <span>{lang === "ja" ? "プレビュー中" : "Preview Mode"}</span>
+              </span>
             )}
           </div>
         </div>
 
-        {/* Space pusher */}
-        <div className="h-20"></div>
+        <div className="flex items-center gap-2">
+          <button 
+            onClick={handleShare}
+            className="relative flex items-center gap-2 px-3 py-1.5 rounded-xl bg-gray-800 hover:bg-gray-700 transition-colors text-xs font-bold text-gray-200 cursor-pointer"
+          >
+            <Share2 className="w-3.5 h-3.5" />
+            <span>{lang === "ja" ? "リンクをコピー" : "Share Link"}</span>
+            {showShareTooltip && (
+              <div className="absolute top-10 right-0 bg-gray-800 border border-gray-700 text-[10px] text-white px-2 py-1 rounded shadow-lg whitespace-nowrap">
+                {lang === "ja" ? "コピーしました！" : "Link copied!"}
+              </div>
+            )}
+          </button>
+        </div>
       </div>
 
-      {/* Floating Chat Widget */}
+      {/* 2. Fullscreen Render Container */}
+      <div className={`flex-1 overflow-y-auto w-full relative transition-all duration-300 ${theme.background} flex justify-center py-10 px-4 md:py-16`}>
+        {/* Decorative blur spot */}
+        <div className="absolute top-20 left-1/2 -translate-x-1/2 w-96 h-96 rounded-full blur-3xl opacity-20 pointer-events-none" style={{ backgroundColor: theme.accentColor }}></div>
+
+        {/* Constrained responsive card */}
+        <div className="w-full max-w-xl relative z-10 flex flex-col items-center">
+          
+          {/* Profile Details */}
+          <div className="flex flex-col items-center w-full mb-8 text-center mt-4">
+            <div className="relative mb-5">
+              <img 
+                alt={persona.name} 
+                className="w-28 h-28 rounded-full border-4 border-white shadow-xl object-cover"
+                src={persona.avatarUrl || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200"}
+                referrerPolicy="no-referrer"
+              />
+              <div className="absolute bottom-1 right-2 bg-emerald-500 w-5 h-5 rounded-full border-2 border-white"></div>
+            </div>
+            
+            <h1 className={`text-3xl font-black mb-1.5 tracking-tight ${isDarkBg ? 'text-white' : 'text-gray-900'}`}>{persona.name}</h1>
+            {persona.title && (
+              <p className="text-sm font-bold px-3 py-1 rounded-full bg-black/5 dark:bg-white/10 text-gray-500 dark:text-gray-300 mb-3 inline-block">
+                {persona.title}
+              </p>
+            )}
+            <p className={`text-sm max-w-[420px] leading-relaxed ${isDarkBg ? 'text-gray-300' : 'text-gray-600'}`}>
+              {persona.bio}
+            </p>
+          </div>
+
+          {/* Gallery Showcase */}
+          {gallery && gallery.length > 0 && (
+            <div className="w-full mb-8 animate-fade-in">
+              <div className={`grid gap-3 ${
+                gallery.length === 1 ? "grid-cols-1" : gallery.length === 2 ? "grid-cols-2" : "grid-cols-3"
+              }`}>
+                {gallery.map((url, idx) => (
+                  <div 
+                    key={idx} 
+                    className="aspect-square overflow-hidden shadow-md border border-white/20 group relative cursor-pointer"
+                    style={{ borderRadius: `${Math.max(8, theme.borderRadius)}px` }}
+                  >
+                    <img 
+                      src={url} 
+                      alt={`Showcase ${idx}`} 
+                      className="w-full h-full object-cover transition-all duration-500 hover:scale-105"
+                      referrerPolicy="no-referrer"
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Dopes Panel (Recommended Questions) */}
+          <div className="w-full flex flex-col gap-4 mt-2">
+            <div className={`text-2xl font-black text-left ${isDarkBg ? "text-white" : "text-black"} tracking-tight mb-1`}>
+              Dopes
+            </div>
+            <div className="grid grid-cols-2 gap-3 w-full">
+              {assistantPrompts.length === 0 ? (
+                <div className="col-span-2 text-center py-12 px-6 rounded-2xl border border-dashed border-gray-300/40 bg-white/10 backdrop-blur-sm">
+                  <p className="text-sm text-gray-500">{t.chatNoPrompts}</p>
+                </div>
+              ) : (
+                assistantPrompts.map((prompt, idx) => {
+                  const buttonStyles = getButtonStyles(theme.accentColor, theme.borderRadius);
+                  const shortLabel = getShortKeyword(prompt);
+                  return (
+                    <button 
+                      key={idx}
+                      onClick={() => {
+                        setChatOpen(true);
+                        handleSendMessage(prompt);
+                      }}
+                      {...buttonStyles}
+                      className={`${buttonStyles.className} text-center text-sm md:text-base justify-center group cursor-pointer w-full py-4 px-4 font-black hover:scale-102 transition-all`}
+                      title={prompt}
+                    >
+                      <span className="truncate font-black text-center">{shortLabel}</span>
+                    </button>
+                  );
+                })
+              )}
+            </div>
+          </div>
+
+          {/* Bottom Space */}
+          <div className="h-32"></div>
+
+        </div>
+      </div>
+
+      {/* 3. Floating Interactive Chat Widget */}
       {!chatOpen ? (
-        /* Floating Button Pill */
         <button 
           onClick={() => setChatOpen(true)}
-          className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30 shadow-lg hover:shadow-xl hover:scale-102 active:scale-95 transition-all duration-200 py-2.5 px-5 flex items-center gap-2 border border-white/20 font-semibold text-xs text-white cursor-pointer whitespace-nowrap"
+          className="fixed bottom-8 right-8 z-40 shadow-xl hover:shadow-2xl hover:scale-105 active:scale-95 transition-all duration-200 py-3.5 px-6 flex items-center gap-2.5 border border-white/20 font-bold text-sm text-white cursor-pointer whitespace-nowrap"
           style={{ 
             backgroundColor: theme.accentColor,
             borderRadius: '9999px',
-            boxShadow: `0 8px 20px ${theme.accentColor}4d`
+            boxShadow: `0 10px 25px ${theme.accentColor}4d`
           }}
         >
-          <Sparkles className="w-3.5 h-3.5 animate-pulse" />
+          <Sparkles className="w-4 h-4 animate-pulse" />
           <span>{t.clickToChat}</span>
         </button>
       ) : (
-        /* Floating Dialog Box Card */
         <div 
-          className="absolute bottom-6 inset-x-4 z-30 flex flex-col bg-white border border-gray-100/80 shadow-2xl overflow-hidden h-[360px] transition-all duration-300 animate-fade-in"
-          style={{ borderRadius: "20px" }}
+          className="fixed bottom-8 right-8 z-40 flex flex-col bg-white border border-gray-100/80 shadow-2xl overflow-hidden h-[450px] w-[360px] max-w-[calc(100vw-2rem)] transition-all duration-300 animate-fade-in"
+          style={{ borderRadius: "24px" }}
         >
-          {/* Dialog Header */}
-          <div 
-            className="h-11 px-4 flex items-center justify-between border-b border-gray-50 bg-gray-50/50 select-none shrink-0"
-          >
-            <div className="flex items-center gap-2">
+          {/* Header */}
+          <div className="h-14 px-5 flex items-center justify-between border-b border-gray-50 bg-gray-50/50 select-none shrink-0">
+            <div className="flex items-center gap-2.5">
               <div 
-                className="w-6 h-6 rounded-full flex items-center justify-center"
+                className="w-7 h-7 rounded-full flex items-center justify-center"
                 style={{ backgroundColor: `${theme.accentColor}1a`, color: theme.accentColor }}
               >
-                <Sparkles className="w-3 h-3" />
+                <Sparkles className="w-4 h-4" />
               </div>
-              <span className="text-xs font-bold text-gray-800">{assistantName || t.chatHeaderDefault}</span>
+              <span className="text-sm font-extrabold text-gray-800">{assistantName || t.chatHeaderDefault}</span>
             </div>
             <button 
               onClick={() => setChatOpen(false)}
-              className="p-1 rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
-              title={lang === "ja" ? "閉じる" : "Close"}
+              className="p-1.5 rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
+              title="Close"
             >
-              <X className="w-4 h-4" />
+              <X className="w-4.5 h-4.5" />
             </button>
           </div>
 
           {/* Chat Body */}
-          <div className="flex-1 flex flex-col overflow-hidden bg-gray-50/20">
-            {/* Scrollable messages panel */}
-            <div className="flex-1 p-3.5 overflow-y-auto space-y-3 scrollbar-none text-xs">
+          <div className="flex-1 flex flex-col overflow-hidden bg-gray-50/10">
+            <div className="flex-1 p-4 overflow-y-auto space-y-4 text-xs md:text-sm">
               {messages.map((msg, idx) => (
                 <div 
                   key={idx} 
                   className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
                 >
                   <div 
-                    className={`max-w-[80%] rounded-2xl px-3.5 py-2 shadow-sm leading-relaxed ${
+                    className={`max-w-[85%] rounded-2xl px-4 py-2.5 shadow-sm leading-relaxed ${
                       msg.role === 'user' 
                         ? 'text-white rounded-tr-none' 
-                        : 'bg-white text-gray-800 border border-gray-100 rounded-tl-none'
+                        : 'bg-white text-gray-800 border border-gray-100/50 rounded-tl-none'
                     }`}
                     style={msg.role === 'user' ? { backgroundColor: theme.accentColor } : undefined}
                   >
@@ -414,7 +428,7 @@ export default function PhonePreview({
 
               {isLoading && (
                 <div className="flex justify-start">
-                  <div className="bg-white border border-gray-100 rounded-2xl rounded-tl-none px-4 py-3 shadow-sm flex items-center gap-2 text-gray-400">
+                  <div className="bg-white border border-gray-100 rounded-2xl rounded-tl-none px-4 py-3 shadow-sm flex items-center gap-2 text-gray-400 text-xs">
                     <Loader2 className="w-4 h-4 animate-spin" style={{ color: theme.accentColor }} />
                     <span>{lang === "ja" ? "AIは考え中..." : "AI is thinking..."}</span>
                   </div>
@@ -425,16 +439,16 @@ export default function PhonePreview({
 
             {/* Quick-action prompt chips inside the chat */}
             {assistantPrompts.length > 0 && (
-              <div className="px-3 py-2 flex gap-1.5 bg-gray-50/80 border-t border-gray-100/50 overflow-x-auto scrollbar-none shrink-0 w-full">
+              <div className="px-4 py-2.5 flex gap-2 bg-gray-50/80 border-t border-gray-100/50 overflow-x-auto scrollbar-none shrink-0 w-full">
                 {assistantPrompts.map((p, idx) => (
                   <button
                     key={idx}
                     type="button"
                     onClick={() => handleSendMessage(p)}
-                    className="text-[10px] px-2.5 py-1 rounded-full border border-gray-200 bg-white hover:bg-gray-50 hover:border-gray-300 active:scale-95 transition-all shadow-sm cursor-pointer whitespace-nowrap text-gray-700 font-bold shrink-0 flex items-center gap-1"
+                    className="text-xs px-3 py-1.5 rounded-full border border-gray-200 bg-white hover:bg-gray-50 hover:border-gray-300 active:scale-95 transition-all shadow-sm cursor-pointer whitespace-nowrap text-gray-700 font-bold shrink-0 flex items-center gap-1"
                     style={{ borderRadius: '9999px' }}
                   >
-                    <Sparkles className="w-2.5 h-2.5 text-amber-500 shrink-0" />
+                    <Sparkles className="w-3.5 h-3.5 text-amber-500 shrink-0" />
                     <span>{p}</span>
                   </button>
                 ))}
@@ -447,7 +461,7 @@ export default function PhonePreview({
                 e.preventDefault();
                 handleSendMessage(inputMessage);
               }}
-              className="p-2 bg-white border-t border-gray-100 flex items-center gap-2 shrink-0"
+              className="p-3 bg-white border-t border-gray-100 flex items-center gap-2 shrink-0"
             >
               <input 
                 type="text"
@@ -455,28 +469,24 @@ export default function PhonePreview({
                 onChange={(e) => setInputMessage(e.target.value)}
                 placeholder={t.chatInputPlaceholder}
                 disabled={isLoading}
-                className="flex-1 bg-gray-50 border border-gray-100 rounded-full px-3.5 py-1.5 text-xs focus:outline-none focus:bg-white transition-all text-gray-800"
+                className="flex-1 bg-gray-50 border border-gray-100 rounded-full px-4 py-2.5 text-xs md:text-sm focus:outline-none focus:bg-white transition-all text-gray-800"
               />
               <button 
                 type="submit"
                 disabled={!inputMessage.trim() || isLoading}
-                className="w-7 h-7 rounded-full disabled:opacity-40 text-white flex items-center justify-center shrink-0 shadow-md transition-all duration-200 cursor-pointer"
+                className="w-9 h-9 rounded-full disabled:opacity-40 text-white flex items-center justify-center shrink-0 shadow-md transition-all duration-200 cursor-pointer"
                 style={{ 
                   backgroundColor: theme.accentColor, 
-                  boxShadow: `0 4px 10px ${theme.accentColor}33`
+                  boxShadow: `0 4px 12px ${theme.accentColor}33`
                 }}
               >
-                <Send className="w-3 h-3" />
+                <Send className="w-4 h-4" />
               </button>
             </form>
           </div>
         </div>
       )}
 
-      {/* Safe Area Indicator */}
-      <div className="absolute bottom-1 inset-x-0 h-1 flex justify-center pointer-events-none z-50">
-        <div className="w-28 h-1 bg-gray-800 rounded-full opacity-60"></div>
-      </div>
     </div>
   );
 }

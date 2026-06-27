@@ -5,6 +5,7 @@ import { Language, TRANSLATIONS } from "./i18n";
 import LeftPanel from "./components/LeftPanel";
 import PhonePreview from "./components/PhonePreview";
 import RightPanel from "./components/RightPanel";
+import LivePreview from "./components/LivePreview";
 import { 
   Edit3, 
   Palette, 
@@ -39,6 +40,7 @@ export default function App() {
 
   // Publish / feedback notification
   const [publishStatus, setPublishStatus] = useState<"idle" | "success" | "error">("idle");
+  const [previewMode, setPreviewMode] = useState<"preview" | "publish" | null>(null);
 
   // Template select trigger
   const handleSelectTemplate = (templateId: string) => {
@@ -75,10 +77,27 @@ export default function App() {
   // Simulated Publish
   const handlePublish = () => {
     setPublishStatus("success");
+    setPreviewMode("publish");
     setTimeout(() => {
       setPublishStatus("idle");
     }, 3000);
   };
+
+  if (previewMode !== null) {
+    return (
+      <LivePreview
+        lang={lang}
+        persona={persona}
+        theme={theme}
+        assistantName={assistantName}
+        assistantGreeting={assistantGreeting}
+        assistantPrompts={assistantPrompts}
+        gallery={gallery}
+        onClose={() => setPreviewMode(null)}
+        mode={previewMode}
+      />
+    );
+  }
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-gray-50/50 text-gray-800 font-sans antialiased">
@@ -91,7 +110,7 @@ export default function App() {
             D
           </div>
           <div>
-            <h1 className="font-bold text-white text-md tracking-tight leading-none">Doppel</h1>
+            <h1 className="font-bold text-white text-md tracking-tight leading-none">Doppeli</h1>
             <p className="text-[10px] text-indigo-400 font-semibold mt-1">{t.brandSubtitle}</p>
           </div>
         </div>
@@ -170,16 +189,6 @@ export default function App() {
               >
                 JP
               </button>
-              <button 
-                onClick={() => handleLanguageChange("zh")}
-                className={`px-2.5 py-1 text-[10px] font-bold rounded-lg transition-all cursor-pointer ${
-                  lang === "zh" 
-                    ? 'bg-white text-indigo-600 shadow-sm' 
-                    : 'text-gray-500 hover:text-gray-900'
-                }`}
-              >
-                ZH
-              </button>
             </div>
 
             {/* View indicators */}
@@ -192,7 +201,10 @@ export default function App() {
               </button>
             </div>
 
-            <button className="px-4 py-2 border border-gray-200 text-gray-600 font-bold rounded-full hover:bg-gray-50 transition-colors cursor-pointer">
+            <button 
+              onClick={() => setPreviewMode("preview")}
+              className="px-4 py-2 border border-gray-200 text-gray-600 font-bold rounded-full hover:bg-gray-50 transition-colors cursor-pointer"
+            >
               {t.previewBtn}
             </button>
             <button 
